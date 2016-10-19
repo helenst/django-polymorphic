@@ -19,6 +19,14 @@ if django.VERSION >= (1, 8):
     from django.db.models import Case, When
 
 
+class PrefetchRelatedA(PolymorphicModel):
+    pass
+
+
+class PrefetchRelatedB(models.Model):
+    links = models.ManyToManyField(PrefetchRelatedA)
+
+
 class PolymorphicTests(TestCase):
     """
     The test suite
@@ -803,6 +811,17 @@ class PolymorphicTests(TestCase):
         ctype = get_polymorphic_base_content_type(Model2D)
         self.assertEqual(ctype.name, 'model2a')
 
+
+    def test_prefetch_related_behaves_normally_with_polymorphic_model(self):
+        """See #68"""
+        b1 = PrefetchRelatedB.objects.create()
+        b2 = PrefetchRelatedB.objects.create()
+        a = b1.links.create()
+        b2.links.add(a)
+
+        qs = PrefetchRelatedB.objects.prefetch_related('links')
+        for obj in qs:
+            self.assertEqual(len(obj.links.all()), 1)
 
 def qrepr(data):
     """
